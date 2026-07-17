@@ -1,0 +1,2 @@
+[console_scripts]
+zenodo-auto-meta = zenodo_auto_meta.cli:main

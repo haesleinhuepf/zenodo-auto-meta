@@ -1,0 +1,14 @@
+LICENSE
+README.md
+pyproject.toml
+src/zenodo_auto_meta/__init__.py
+src/zenodo_auto_meta/cli.py
+src/zenodo_auto_meta/llm.py
+src/zenodo_auto_meta/zenodo.py
+src/zenodo_auto_meta.egg-info/PKG-INFO
+src/zenodo_auto_meta.egg-info/SOURCES.txt
+src/zenodo_auto_meta.egg-info/dependency_links.txt
+src/zenodo_auto_meta.egg-info/entry_points.txt
+src/zenodo_auto_meta.egg-info/requires.txt
+src/zenodo_auto_meta.egg-info/top_level.txt
+tests/test_zenodo_auto_meta.py
