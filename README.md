@@ -12,7 +12,7 @@ missing them, using an OpenAI-compatible LLM (e.g.
 
 1. **Fetch** – Downloads all record metadata from a Zenodo community in pages
    of 10, accumulating a full list.  Results are cached in
-   `~/.zenodo_auto_meta_<community>.json` for up to one week so subsequent
+   `cache_zenodo_auto_meta_<community>.yml` for up to one week so subsequent
    runs are fast.
 2. **Separate** – Splits records into those *with* tags and those *without*.
 3. **Few-shot examples** – Selects records that have both a description and
@@ -20,11 +20,11 @@ missing them, using an OpenAI-compatible LLM (e.g.
    provides a description and the *assistant* returns the matching tag list.
 4. **Predict** – Appends each tag-less (but described) record as a new user
    message and calls the LLM to suggest tags.
-5. **Save** – Writes `proposed_tags.json` with the link, description, and
+5. **Save** – Writes `proposed_tags.yml` with the link, description, and
    proposed tags for every predicted record.
-6. **Curate** – You review and edit `proposed_tags.json` in your favourite
+6. **Curate** – You review and edit `proposed_tags.yml` in your favourite
    text editor.
-7. **Update** – Run the tool again with `--update proposed_tags.json` to push
+7. **Update** – Run the tool again with `--update proposed_tags.yml` to push
    the curated tags back to Zenodo via its REST API.
 
 ## Installation
@@ -61,7 +61,7 @@ Example (community slug `nfdi4bioimage`):
 zenodo-auto-meta nfdi4bioimage
 ```
 
-This saves `proposed_tags.json` in the current directory.
+This saves `proposed_tags.yml` in the current directory.
 
 #### Options
 
@@ -72,15 +72,15 @@ This saves `proposed_tags.json` in the current directory.
 | `--base-url` | `http://localhost:11434/v1` | OpenAI-compatible API URL (also via `ZENODO_AUTO_META_BASE_URL`) |
 | `--api-key` | `ollama` | API key (also via `ZENODO_AUTO_META_API_KEY`) |
 | `--max-examples` | `20` | Maximum few-shot examples to include |
-| `--output` | `proposed_tags.json` | Path for the output JSON file |
+| `--output` | `proposed_tags.yml` | Path for the output YAML file |
 | `--zenodo-url` | `https://zenodo.org/api` | Zenodo API URL (also via `ZENODO_URL`) |
 
-### Step 2 — Curate the JSON file
+### Step 2 — Curate the YAML file
 
-Open `proposed_tags.json` and review the suggested tags.  Each entry looks
+Open `proposed_tags.yml` and review the suggested tags.  Each entry looks
 like:
 
-```json
+```yaml
 {
   "link": "https://zenodo.org/record/1234567",
   "description": "Plain-text description …",
@@ -95,7 +95,7 @@ as needed.
 
 ```bash
 export ZENODO_TOKEN=<your-zenodo-personal-access-token>
-zenodo-auto-meta <community> --update proposed_tags.json
+zenodo-auto-meta <community> --update proposed_tags.yml
 ```
 
 > **Note** – Only records *owned by the authenticated user* can be updated via

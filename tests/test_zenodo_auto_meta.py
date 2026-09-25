@@ -1,11 +1,11 @@
 """Unit tests for zenodo-auto-meta."""
 
-import json
 import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+import yaml
 
 from zenodo_auto_meta.zenodo import (
     _cache_path,
@@ -32,7 +32,7 @@ SAMPLE_RECORD_WITH_TAGS = {
         "keywords": ["python", "bioimaging"],
         "description": "<p>A great tool for bioimaging.</p>",
     },
-    "links": {"html": "https://zenodo.org/record/111"},
+    "doi_url": "https://zenodo.org/record/111",
 }
 
 SAMPLE_RECORD_WITHOUT_TAGS = {
@@ -40,12 +40,12 @@ SAMPLE_RECORD_WITHOUT_TAGS = {
         "keywords": [],
         "description": "<p>Another record without tags.</p>",
     },
-    "links": {"html": "https://zenodo.org/record/222"},
+    "doi_url": "https://zenodo.org/record/222",
 }
 
 SAMPLE_RECORD_NO_DESC = {
     "metadata": {"keywords": [], "description": ""},
-    "links": {"html": "https://zenodo.org/record/333"},
+    "doi_url": "https://zenodo.org/record/333",
 }
 
 
@@ -114,9 +114,9 @@ def test_load_cache_expired(tmp_path, monkeypatch):
     monkeypatch.setattr("zenodo_auto_meta.zenodo.Path.home", lambda: tmp_path)
     community = "test-community"
     # Write a cache that is already expired (timestamp = 0)
-    cache_file = tmp_path / f".zenodo_auto_meta_{community}.json"
+    cache_file = tmp_path / f"cache_zenodo_auto_meta_{community}.yml"
     cache_file.write_text(
-        json.dumps({"timestamp": 0, "records": [SAMPLE_RECORD_WITH_TAGS]})
+        yaml.safe_dump({"timestamp": 0, "records": [SAMPLE_RECORD_WITH_TAGS]})
     )
     assert _load_cache(community) is None
 
@@ -218,30 +218,30 @@ def test_cli_predict_mode(tmp_path, monkeypatch):
     mock_predict = MagicMock(return_value=["bio", "imaging"])
     monkeypatch.setattr("zenodo_auto_meta.cli.predict_tags", mock_predict)
 
-    output = tmp_path / "out.json"
+    output = tmp_path / "out.yml"
     ret = main(["mycomm", "--output", str(output)])
     assert ret == 0
-    data = json.loads(output.read_text())
+    data = yaml.safe_load(output.read_text())
     assert len(data) == 1
     assert data[0]["proposed_tags"] == ["bio", "imaging"]
 
 
 def test_cli_update_mode_missing_token(tmp_path):
-    json_file = tmp_path / "curated.json"
-    json_file.write_text(json.dumps([{"link": "https://zenodo.org/record/1", "proposed_tags": ["x"]}]))
-    ret = main(["mycomm", "--update", str(json_file)])
+    yml_file = tmp_path / "curated.yml"
+    yml_file.write_text(yaml.safe_dump([{"link": "https://zenodo.org/record/1", "proposed_tags": ["x"]}]))
+    ret = main(["mycomm", "--update", str(yml_file)])
     assert ret == 1
 
 
 def test_cli_update_mode(tmp_path, monkeypatch):
     entry = {"link": "https://zenodo.org/record/42", "proposed_tags": ["bio"]}
-    json_file = tmp_path / "curated.json"
-    json_file.write_text(json.dumps([entry]))
+    yml_file = tmp_path / "curated.yml"
+    yml_file.write_text(yaml.safe_dump([entry]))
 
     mock_update = MagicMock()
     monkeypatch.setattr("zenodo_auto_meta.cli.update_record_keywords", mock_update)
 
-    ret = main(["mycomm", "--update", str(json_file), "--zenodo-token", "mytoken"])
+    ret = main(["mycomm", "--update", str(yml_file), "--zenodo-token", "mytoken"])
     assert ret == 0
     mock_update.assert_called_once()
     call_kwargs = mock_update.call_args

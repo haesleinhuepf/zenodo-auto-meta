@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
+
+import yaml
 
 from .llm import DEFAULT_API_KEY, DEFAULT_BASE_URL, DEFAULT_MAX_EXAMPLES, DEFAULT_MODEL, predict_tags
 from .zenodo import (
@@ -26,7 +27,7 @@ def _build_parser() -> argparse.ArgumentParser:
             "Auto-complete Zenodo record metadata using a local LLM.\n\n"
             "USAGE — two modes:\n"
             "  1. Predict tags:  zenodo-auto-meta <community> [<community> ...] [options]\n"
-            "  2. Apply curated tags: zenodo-auto-meta <community> --update <json_file>"
+            "  2. Apply curated tags: zenodo-auto-meta <community> --update <yml_file>"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -63,18 +64,18 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--output",
-        default="proposed_tags.json",
+        default="proposed_tags.yml",
         help=(
-            "Output JSON file for proposed tags (default: proposed_tags.json). "
+            "Output YAML file for proposed tags (default: proposed_tags.yml). "
             "When multiple communities are given, the community slug is inserted "
-            "before the extension, e.g. 'proposed_tags_<community>.json'."
+            "before the extension, e.g. 'proposed_tags_<community>.yml'."
         ),
     )
     parser.add_argument(
         "--update",
-        metavar="JSON_FILE",
+        metavar="YML_FILE",
         help=(
-            "Curated JSON file produced by a previous run.  "
+            "Curated YAML file produced by a previous run.  "
             "When supplied, the tool updates Zenodo records instead of predicting tags."
         ),
     )
@@ -92,7 +93,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _run_update(args: argparse.Namespace) -> int:
-    """Apply curated tags from a JSON file to Zenodo records."""
+    """Apply curated tags from a YAML file to Zenodo records."""
     if not args.zenodo_token:
         print(
             "Error: a Zenodo API token is required to update records.\n"
@@ -102,7 +103,7 @@ def _run_update(args: argparse.Namespace) -> int:
         return 1
 
     with open(args.update) as fh:
-        entries = json.load(fh)
+        entries = yaml.safe_load(fh)
 
     errors = 0
     for entry in entries:
@@ -131,7 +132,7 @@ def _output_path_for(community: str, output: str, *, multiple: bool) -> str:
     if not multiple:
         return output
     base, ext = os.path.splitext(output)
-    return f"{base}_{community}{ext or '.json'}"
+    return f"{base}_{community}{ext or '.yml'}"
 
 
 def _run_predict_one(
@@ -141,7 +142,7 @@ def _run_predict_one(
     examples: list[tuple[str, list[str]]],
     args: argparse.Namespace,
 ) -> int:
-    """Predict tags for a single community's untagged records, save JSON."""
+    """Predict tags for a single community's untagged records, save YAML."""
     print(f"\nCommunity '{community}':")
     print(f"  Records without tags: {len(without_tags)}")
 
@@ -173,7 +174,7 @@ def _run_predict_one(
             print(f"Error: {exc}", file=sys.stderr)
 
         with open(output, "w") as fh:
-            json.dump(results, fh, indent=2)
+            yaml.safe_dump(results, fh, sort_keys=False)
     print(f"  Saved {len(results)} prediction(s) to '{output}'.")
     print("  Please review and curate the file, then run:")
     print(f"    zenodo-auto-meta {community} --update {output}")

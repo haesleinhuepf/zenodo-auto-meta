@@ -1,11 +1,11 @@
 """Zenodo REST API helpers: fetch community records and update record metadata."""
 
-import json
 import re
 import time
 from pathlib import Path
 
 import requests
+import yaml
 
 ZENODO_API_URL = "https://zenodo.org/api"
 CACHE_MAX_AGE = 7 * 24 * 3600  # one week in seconds
@@ -25,7 +25,7 @@ def strip_html(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _cache_path(community: str) -> Path:
-    return Path(f"cache_zenodo_auto_meta_{community}.json")
+    return Path(f"cache_zenodo_auto_meta_{community}.yml")
 
 
 def _load_cache(community: str) -> list | None:
@@ -35,11 +35,11 @@ def _load_cache(community: str) -> list | None:
         return None
     try:
         with path.open() as fh:
-            data = json.load(fh)
+            data = yaml.safe_load(fh)
         age = time.time() - data.get("timestamp", 0)
         if age < CACHE_MAX_AGE:
             return data["records"]
-    except (json.JSONDecodeError, KeyError, OSError):
+    except (AttributeError, KeyError, OSError, TypeError, yaml.YAMLError):
         pass
     return None
 
@@ -47,7 +47,7 @@ def _load_cache(community: str) -> list | None:
 def _save_cache(community: str, records: list) -> None:
     path = _cache_path(community)
     with path.open("w") as fh:
-        json.dump({"timestamp": time.time(), "records": records}, fh)
+        yaml.safe_dump({"timestamp": time.time(), "records": records}, fh, sort_keys=False)
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ def fetch_community_records(
     """Return all records from a Zenodo community.
 
     Records are downloaded in pages of 10 and accumulated.  The result is
-    cached in ``~/.zenodo_auto_meta_<community>.json`` and reused for up to
+    cached in ``cache_zenodo_auto_meta_<community>.yml`` and reused for up to
     one week unless *force_refresh* is ``True``.
     """
     if not force_refresh:
