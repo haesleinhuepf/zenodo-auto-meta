@@ -25,7 +25,7 @@ def strip_html(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _cache_path(community: str) -> Path:
-    return Path.home() / f".zenodo_auto_meta_{community}.json"
+    return Path(f"cache_zenodo_auto_meta_{community}.json")
 
 
 def _load_cache(community: str) -> list | None:
@@ -107,8 +107,8 @@ def get_description(record: dict) -> str:
 
 
 def get_link(record: dict) -> str:
-    """Return the HTML link to the record's landing page."""
-    return record.get("links", {}).get("html", "")
+    """Return the DOI link to the record's landing page."""
+    return record.get("doi_url", "")
 
 
 # ---------------------------------------------------------------------------

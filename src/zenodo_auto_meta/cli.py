@@ -172,8 +172,8 @@ def _run_predict_one(
         except Exception as exc:  # noqa: BLE001
             print(f"Error: {exc}", file=sys.stderr)
 
-    with open(output, "w") as fh:
-        json.dump(results, fh, indent=2)
+        with open(output, "w") as fh:
+            json.dump(results, fh, indent=2)
     print(f"  Saved {len(results)} prediction(s) to '{output}'.")
     print("  Please review and curate the file, then run:")
     print(f"    zenodo-auto-meta {community} --update {output}")

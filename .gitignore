@@ -5,3 +5,6 @@ __pycache__
 .ipynb_checkpoints
 cache/
 *egg-info*
+
+cache*
+proposed*
