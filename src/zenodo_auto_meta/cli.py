@@ -25,12 +25,16 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "Auto-complete Zenodo record metadata using a local LLM.\n\n"
             "USAGE — two modes:\n"
-            "  1. Predict tags:  zenodo-auto-meta <community> [options]\n"
+            "  1. Predict tags:  zenodo-auto-meta <community> [<community> ...] [options]\n"
             "  2. Apply curated tags: zenodo-auto-meta <community> --update <json_file>"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("community", help="Zenodo community slug (e.g. 'nfdi4bioimage')")
+    parser.add_argument(
+        "community",
+        nargs="+",
+        help="One or more Zenodo community slugs (e.g. 'nfdi4bioimage')",
+    )
     parser.add_argument(
         "--force-refresh",
         action="store_true",
@@ -60,7 +64,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output",
         default="proposed_tags.json",
-        help="Output JSON file for proposed tags (default: proposed_tags.json)",
+        help=(
+            "Output JSON file for proposed tags (default: proposed_tags.json). "
+            "When multiple communities are given, the community slug is inserted "
+            "before the extension, e.g. 'proposed_tags_<community>.json'."
+        ),
     )
     parser.add_argument(
         "--update",
@@ -117,35 +125,32 @@ def _run_update(args: argparse.Namespace) -> int:
     return 0
 
 
-def _run_predict(args: argparse.Namespace) -> int:
-    """Fetch community records, predict tags for those lacking them, save JSON."""
-    print(f"Fetching records for Zenodo community '{args.community}' …")
-    records = fetch_community_records(
-        args.community,
-        force_refresh=args.force_refresh,
-        zenodo_url=args.zenodo_url,
-    )
-    print(f"  Total records: {len(records)}")
+def _output_path_for(community: str, output: str, *, multiple: bool) -> str:
+    """Return the output path for *community*, disambiguating when multiple
+    communities share a single ``--output`` template."""
+    if not multiple:
+        return output
+    base, ext = os.path.splitext(output)
+    return f"{base}_{community}{ext or '.json'}"
 
-    with_tags, without_tags = separate_records(records)
-    print(f"  Records with tags:    {len(with_tags)}")
+
+def _run_predict_one(
+    community: str,
+    output: str,
+    without_tags: list,
+    examples: list[tuple[str, list[str]]],
+    args: argparse.Namespace,
+) -> int:
+    """Predict tags for a single community's untagged records, save JSON."""
+    print(f"\nCommunity '{community}':")
     print(f"  Records without tags: {len(without_tags)}")
-
-    # Build few-shot examples: records that have both tags and a description
-    examples: list[tuple[str, list[str]]] = []
-    for record in with_tags:
-        desc = get_description(record)
-        tags = get_tags(record)
-        if desc:
-            examples.append((desc, tags))
-    print(f"  Few-shot examples (tagged + described): {len(examples)}")
 
     # Records to predict: have a description but no tags
     to_predict = [r for r in without_tags if get_description(r)]
     print(f"  Records to predict tags for: {len(to_predict)}")
 
     if not to_predict:
-        print("Nothing to do — all records with descriptions already have tags.")
+        print("  Nothing to do — all records with descriptions already have tags.")
         return 0
 
     results: list[dict] = []
@@ -167,11 +172,11 @@ def _run_predict(args: argparse.Namespace) -> int:
         except Exception as exc:  # noqa: BLE001
             print(f"Error: {exc}", file=sys.stderr)
 
-    with open(args.output, "w") as fh:
+    with open(output, "w") as fh:
         json.dump(results, fh, indent=2)
-    print(f"\nSaved {len(results)} prediction(s) to '{args.output}'.")
-    print("Please review and curate the file, then run:")
-    print(f"  zenodo-auto-meta {args.community} --update {args.output}")
+    print(f"  Saved {len(results)} prediction(s) to '{output}'.")
+    print("  Please review and curate the file, then run:")
+    print(f"    zenodo-auto-meta {community} --update {output}")
     return 0
 
 
@@ -181,7 +186,44 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.update:
         return _run_update(args)
-    return _run_predict(args)
+
+    multiple = len(args.community) > 1
+
+    # Fetch records for every community first, then pool the tagged records
+    # from all of them together as few-shot examples.
+    without_tags_by_community: dict[str, list] = {}
+    examples: list[tuple[str, list[str]]] = []
+    for community in args.community:
+        print(f"Fetching records for Zenodo community '{community}' …")
+        records = fetch_community_records(
+            community,
+            force_refresh=args.force_refresh,
+            zenodo_url=args.zenodo_url,
+        )
+        print(f"  Total records: {len(records)}")
+
+        with_tags, without_tags = separate_records(records)
+        print(f"  Records with tags:    {len(with_tags)}")
+        print(f"  Records without tags: {len(without_tags)}")
+        without_tags_by_community[community] = without_tags
+
+        for record in with_tags:
+            desc = get_description(record)
+            tags = get_tags(record)
+            if desc:
+                examples.append((desc, tags))
+
+    print(f"\nFew-shot examples pooled from all communities (tagged + described): {len(examples)}")
+
+    exit_code = 0
+    for community in args.community:
+        output = _output_path_for(community, args.output, multiple=multiple)
+        result = _run_predict_one(
+            community, output, without_tags_by_community[community], examples, args
+        )
+        if result != 0:
+            exit_code = result
+    return exit_code
 
 
 if __name__ == "__main__":
