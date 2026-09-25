@@ -15,6 +15,7 @@ from zenodo_auto_meta.zenodo import (
     get_description,
     get_link,
     get_tags,
+    get_title,
     separate_records,
     strip_html,
     update_record_keywords,
@@ -30,6 +31,7 @@ from zenodo_auto_meta.cli import main
 SAMPLE_RECORD_WITH_TAGS = {
     "metadata": {
         "keywords": ["python", "bioimaging"],
+        "title": "A great bioimaging tool",
         "description": "<p>A great tool for bioimaging.</p>",
     },
     "doi_url": "https://zenodo.org/record/111",
@@ -83,6 +85,10 @@ def test_get_description_strips_html():
 
 def test_get_link():
     assert get_link(SAMPLE_RECORD_WITH_TAGS) == "https://zenodo.org/record/111"
+
+
+def test_get_title():
+    assert get_title(SAMPLE_RECORD_WITH_TAGS) == "A great bioimaging tool"
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +229,7 @@ def test_cli_predict_mode(tmp_path, monkeypatch):
     assert ret == 0
     data = yaml.safe_load(output.read_text())
     assert len(data) == 1
+    assert data[0]["title"] == "A great bioimaging tool"
     assert data[0]["proposed_tags"] == ["bio", "imaging"]
 
 

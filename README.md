@@ -58,7 +58,7 @@ zenodo-auto-meta <community>
 Example (community slug `nfdi4bioimage`):
 
 ```bash
-zenodo-auto-meta nfdi4bioimage
+zenodo-auto-meta nfdi4biodiv nfdi4bioimage
 ```
 
 This saves `proposed_tags.yml` in the current directory.
@@ -77,15 +77,16 @@ This saves `proposed_tags.yml` in the current directory.
 
 ### Step 2 — Curate the YAML file
 
-Open `proposed_tags.yml` and review the suggested tags.  Each entry looks
+Open `proposed_tags_<communty>.yml` and review the suggested tags.  Each entry looks
 like:
 
 ```yaml
-{
-  "link": "https://zenodo.org/record/1234567",
-  "description": "Plain-text description …",
-  "proposed_tags": ["microscopy", "python", "bioimaging"]
-}
+- link: https://zenodo.org/record/1234567
+  description: Plain-text description ...
+  proposed_tags: 
+  - microscopy
+  - python
+  - bioimaging
 ```
 
 Remove entries you do not want to update, and edit the `proposed_tags` lists
@@ -95,11 +96,11 @@ as needed.
 
 ```bash
 export ZENODO_TOKEN=<your-zenodo-personal-access-token>
-zenodo-auto-meta <community> --update proposed_tags.yml
+zenodo-auto-meta <community> --update proposed_tags_<communtity>.yml
 ```
 
 > **Note** – Only records *owned by the authenticated user* can be updated via
-> the Zenodo REST API.  The tool performs an unlock → update → re-publish
+> the Zenodo REST API. The tool performs an unlock → update → re-publish
 > workflow for each record.
 
 ## Environment variables

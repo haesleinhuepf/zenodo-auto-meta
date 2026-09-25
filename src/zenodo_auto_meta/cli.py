@@ -15,6 +15,7 @@ from .zenodo import (
     get_description,
     get_link,
     get_tags,
+    get_title,
     separate_records,
     update_record_keywords,
 )
@@ -158,6 +159,7 @@ def _run_predict_one(
     for i, record in enumerate(to_predict, start=1):
         desc = get_description(record)
         link = get_link(record)
+        title = get_title(record)
         print(f"  [{i}/{len(to_predict)}] Predicting tags for {link} …", end=" ", flush=True)
         try:
             tags = predict_tags(
@@ -169,7 +171,9 @@ def _run_predict_one(
                 max_examples=args.max_examples,
             )
             print(", ".join(tags))
-            results.append({"link": link, "description": desc, "proposed_tags": tags})
+            results.append(
+                {"link": link, "title": title, "description": desc, "proposed_tags": tags}
+            )
         except Exception as exc:  # noqa: BLE001
             print(f"Error: {exc}", file=sys.stderr)
 

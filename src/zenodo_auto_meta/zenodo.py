@@ -106,6 +106,11 @@ def get_description(record: dict) -> str:
     return strip_html(raw)
 
 
+def get_title(record: dict) -> str:
+    """Return the title of a record."""
+    return record.get("metadata", {}).get("title", "") or ""
+
+
 def get_link(record: dict) -> str:
     """Return the DOI link to the record's landing page."""
     return record.get("doi_url", "")
