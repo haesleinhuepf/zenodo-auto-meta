@@ -101,7 +101,7 @@ def test_separate_records():
 # ---------------------------------------------------------------------------
 
 def test_save_and_load_cache(tmp_path, monkeypatch):
-    monkeypatch.setattr("zenodo_auto_meta.zenodo.Path.home", lambda: tmp_path)
+    monkeypatch.chdir(tmp_path)
     community = "test-community"
     records = [SAMPLE_RECORD_WITH_TAGS]
     _save_cache(community, records)
@@ -111,10 +111,10 @@ def test_save_and_load_cache(tmp_path, monkeypatch):
 
 
 def test_load_cache_expired(tmp_path, monkeypatch):
-    monkeypatch.setattr("zenodo_auto_meta.zenodo.Path.home", lambda: tmp_path)
+    monkeypatch.chdir(tmp_path)
     community = "test-community"
     # Write a cache that is already expired (timestamp = 0)
-    cache_file = tmp_path / f"cache_zenodo_auto_meta_{community}.yml"
+    cache_file = _cache_path(community)
     cache_file.write_text(
         yaml.safe_dump({"timestamp": 0, "records": [SAMPLE_RECORD_WITH_TAGS]})
     )
@@ -122,7 +122,7 @@ def test_load_cache_expired(tmp_path, monkeypatch):
 
 
 def test_load_cache_missing(tmp_path, monkeypatch):
-    monkeypatch.setattr("zenodo_auto_meta.zenodo.Path.home", lambda: tmp_path)
+    monkeypatch.chdir(tmp_path)
     assert _load_cache("nonexistent-community") is None
 
 
