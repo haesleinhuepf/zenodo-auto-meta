@@ -6,7 +6,7 @@ from openai import OpenAI
 
 DEFAULT_BASE_URL = "http://localhost:11434/v1"
 DEFAULT_API_KEY = "ollama"
-DEFAULT_MODEL = "llama3"
+DEFAULT_MODEL = "gpt-oss:20b"
 DEFAULT_MAX_EXAMPLES = 20
 MAX_DESCRIPTION_CHARS = 2000
 
