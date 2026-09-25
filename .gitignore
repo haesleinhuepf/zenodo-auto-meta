@@ -1,0 +1,10 @@
+*.zip
+Untitled*
+__pycache__
+*.parquet
+.ipynb_checkpoints
+cache/
+*egg-info*
+
+cache*
+proposed*
